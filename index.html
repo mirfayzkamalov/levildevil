@@ -2,7 +2,8 @@
 <html lang="uz">
 <head>
 <meta charset="UTF-8">
-<title>DEVIL TRAP — 500 LEVEL</title>
+<title>DEVIL TRAP — ONLINE MULTIPLAYER</title>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -21,191 +22,64 @@
     border-radius: 8px;
     overflow: hidden;
   }
-  canvas {
-    display: block;
-    background: #12121a;
-    image-rendering: pixelated;
-  }
+  canvas { display: block; background: #12121a; image-rendering: pixelated; }
+
   #ui {
-    position: absolute;
-    top: 12px;
-    left: 14px;
-    font-size: 13px;
-    color: #ff4444;
-    text-shadow: 0 0 8px #ff0000;
-    pointer-events: none;
-    letter-spacing: 1px;
-    z-index: 20;
-    line-height: 1.6;
+    position: absolute; top: 12px; left: 14px; font-size: 13px;
+    color: #ff4444; text-shadow: 0 0 8px #ff0000;
+    pointer-events: none; letter-spacing: 1px; z-index: 20; line-height: 1.6;
   }
   #ui .level { color: #66ff66; text-shadow: 0 0 8px #00ff00; }
   #ui .deaths { color: #ffaa00; text-shadow: 0 0 8px #ff6600; }
   #ui .diff { color: #ff88ff; text-shadow: 0 0 8px #ff00ff; }
-  #ui .progress {
-    display: inline-block;
-    width: 100px;
-    height: 8px;
-    background: #222;
-    border: 1px solid #555;
-    border-radius: 4px;
-    vertical-align: middle;
-    margin-left: 4px;
-    position: relative;
-    overflow: hidden;
-  }
-  #ui .progress > div {
-    height: 100%;
-    background: linear-gradient(90deg, #66ff66, #ffff00, #ff2222);
-    width: 0%;
-    transition: width 0.4s;
-  }
+  #ui .players { color: #66ccff; text-shadow: 0 0 8px #0088ff; }
+  #ui .net { color: #66ffaa; text-shadow: 0 0 8px #00ff88; }
+  #ui .net.off { color: #ff4444; text-shadow: 0 0 8px #ff0000; }
 
-  /* ==================== LOADING EKRANI ==================== */
+  /* LOADING */
   #loading {
-    position: absolute;
-    inset: 0;
+    position: absolute; inset: 0;
     background: radial-gradient(circle at center, #1a0520 0%, #0a0208 100%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 100; overflow: hidden;
   }
   #loading.hide { display: none; }
-
-  /* Fon animatsiyasi - yulduzlar */
-  #loading::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image:
-      radial-gradient(2px 2px at 20% 30%, rgba(255,60,60,0.5), transparent),
-      radial-gradient(2px 2px at 60% 70%, rgba(255,100,100,0.4), transparent),
-      radial-gradient(1px 1px at 80% 20%, rgba(255,200,200,0.6), transparent),
-      radial-gradient(2px 2px at 40% 90%, rgba(200,60,255,0.4), transparent),
-      radial-gradient(1px 1px at 10% 60%, rgba(255,255,255,0.5), transparent),
-      radial-gradient(2px 2px at 90% 80%, rgba(255,80,80,0.5), transparent);
-    background-size: 200% 200%;
-    animation: bgShift 8s ease-in-out infinite alternate;
-    opacity: 0.7;
-  }
-  @keyframes bgShift {
-    0% { background-position: 0% 0%; }
-    100% { background-position: 100% 100%; }
-  }
-
-  .loading-content {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-    width: 70%;
-    max-width: 520px;
-  }
-
   .loading-title {
-    font-size: 52px;
-    font-weight: bold;
-    letter-spacing: 8px;
+    font-size: 52px; font-weight: bold; letter-spacing: 8px;
     color: #ff2222;
-    text-shadow:
-      0 0 10px #ff0000,
-      0 0 30px #ff0000,
-      0 0 60px #ff0000,
-      0 0 100px #ff0000;
-    margin-bottom: 8px;
-    animation: titlePulse 2s ease-in-out infinite;
+    text-shadow: 0 0 10px #ff0000, 0 0 30px #ff0000, 0 0 60px #ff0000;
+    margin-bottom: 8px; animation: titlePulse 2s ease-in-out infinite;
   }
   @keyframes titlePulse {
-    0%, 100% {
-      transform: scale(1);
-      text-shadow: 0 0 10px #ff0000, 0 0 30px #ff0000, 0 0 60px #ff0000, 0 0 100px #ff0000;
-    }
-    50% {
-      transform: scale(1.04);
-      text-shadow: 0 0 20px #ff0000, 0 0 50px #ff0000, 0 0 100px #ff0000, 0 0 150px #ff0000;
-    }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
   }
-
   .loading-subtitle {
-    font-size: 16px;
-    color: #ff8888;
-    letter-spacing: 6px;
-    margin-bottom: 40px;
+    font-size: 16px; color: #ff8888; letter-spacing: 6px; margin-bottom: 40px;
     text-shadow: 0 0 10px #ff0000;
-    animation: subtitleBlink 1.5s ease-in-out infinite;
   }
-  @keyframes subtitleBlink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
   .loading-bar-wrap {
-    width: 100%;
-    height: 24px;
-    background: #1a0a10;
-    border: 2px solid #661111;
-    border-radius: 12px;
-    overflow: hidden;
-    position: relative;
-    box-shadow:
-      0 0 20px rgba(255,0,0,0.4),
-      inset 0 0 20px rgba(0,0,0,0.8);
+    width: 70%; max-width: 520px; height: 24px;
+    background: #1a0a10; border: 2px solid #661111; border-radius: 12px;
+    overflow: hidden; box-shadow: 0 0 20px rgba(255,0,0,0.4), inset 0 0 20px rgba(0,0,0,0.8);
     margin-bottom: 18px;
   }
-
   .loading-bar {
-    height: 100%;
-    width: 0%;
+    height: 100%; width: 0%;
     background: linear-gradient(90deg, #661111 0%, #cc2222 30%, #ff4444 60%, #ff8888 100%);
-    border-radius: 10px;
-    box-shadow:
-      0 0 20px rgba(255,60,60,0.9),
-      0 0 40px rgba(255,60,60,0.5),
-      inset 0 0 10px rgba(255,200,200,0.6);
+    box-shadow: 0 0 20px rgba(255,60,60,0.9);
     transition: width 0.05s linear;
-    position: relative;
-    overflow: hidden;
   }
-
-  .loading-bar::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg,
-      transparent 0%,
-      rgba(255,255,255,0.4) 50%,
-      transparent 100%);
-    animation: shimmer 1.2s linear infinite;
-  }
-  @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-
   .loading-percent {
-    font-size: 22px;
-    font-weight: bold;
-    color: #ffaa00;
-    text-shadow: 0 0 12px #ff6600, 0 0 24px #ff3300;
-    letter-spacing: 3px;
-    margin-bottom: 12px;
+    font-size: 22px; font-weight: bold; color: #ffaa00;
+    text-shadow: 0 0 12px #ff6600; letter-spacing: 3px; margin-bottom: 12px;
   }
-
   .loading-status {
-    font-size: 13px;
-    color: #aa6666;
-    letter-spacing: 2px;
-    min-height: 20px;
-    text-shadow: 0 0 6px #ff0000;
+    font-size: 13px; color: #aa6666; letter-spacing: 2px; min-height: 20px;
     font-style: italic;
   }
-
-  /* Aylanadigan devil belgisi */
   .loading-devil {
-    font-size: 60px;
-    margin-bottom: 20px;
-    display: inline-block;
+    font-size: 60px; margin-bottom: 20px; display: inline-block;
     animation: devilSpin 3s ease-in-out infinite;
     filter: drop-shadow(0 0 20px #ff0000);
   }
@@ -214,120 +88,265 @@
     50% { transform: rotate(8deg) scale(1.15); }
   }
 
-  /* Pastdagi chiziqchalar */
-  .loading-dots {
-    margin-top: 25px;
-    display: flex;
-    justify-content: center;
-    gap: 8px;
+  /* ULANISH EKRANI */
+  #multiplayer {
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at center, #1a0520 0%, #0a0208 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 150; overflow: hidden; padding: 20px;
   }
-  .loading-dots span {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #661111;
-    box-shadow: 0 0 8px #ff0000;
-    animation: dotPulse 1.4s ease-in-out infinite;
+  #multiplayer.hide { display: none; }
+
+  .mp-content {
+    position: relative; z-index: 2; text-align: center;
+    width: 95%; max-width: 820px;
+    background: rgba(15, 5, 20, 0.9);
+    border: 2px solid #661111; border-radius: 14px;
+    padding: 24px 26px 26px;
+    box-shadow: 0 0 40px rgba(255, 40, 40, 0.5), 0 0 80px rgba(120, 0, 200, 0.3);
+    max-height: 95vh; overflow-y: auto;
   }
-  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
-  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
-  .loading-dots span:nth-child(4) { animation-delay: 0.6s; }
-  .loading-dots span:nth-child(5) { animation-delay: 0.8s; }
-  @keyframes dotPulse {
-    0%, 100% { background: #661111; transform: scale(1); }
-    50% { background: #ff2222; transform: scale(1.5); box-shadow: 0 0 15px #ff0000; }
+  .mp-title {
+    font-size: 26px; font-weight: bold; letter-spacing: 4px;
+    color: #ff2222; text-shadow: 0 0 10px #ff0000;
+    margin-bottom: 4px; animation: titlePulse 2s ease-in-out infinite;
+  }
+  .mp-subtitle {
+    font-size: 12px; color: #ff8888; letter-spacing: 4px; margin-bottom: 20px;
   }
 
-  /* ==================== OVERLAY ==================== */
+  /* TABS */
+  .mp-tabs {
+    display: flex; gap: 8px; justify-content: center;
+    margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .mp-tab {
+    flex: 1; min-width: 130px; max-width: 200px;
+    padding: 10px 12px;
+    background: rgba(30, 10, 20, 0.7);
+    border: 2px solid #661111; border-radius: 8px;
+    cursor: pointer; transition: all 0.2s ease;
+    text-align: center; user-select: none;
+    font-size: 13px; font-weight: bold; letter-spacing: 1.5px;
+    color: #ccc;
+  }
+  .mp-tab:hover {
+    transform: translateY(-2px);
+    border-color: #ff4444;
+    background: rgba(60, 15, 25, 0.8);
+    color: #fff;
+  }
+  .mp-tab.active {
+    border-color: #66ff66;
+    background: rgba(10, 40, 20, 0.8);
+    color: #66ff66;
+    box-shadow: 0 0 20px rgba(60, 255, 60, 0.5);
+  }
+  .mp-tab .icon { font-size: 18px; display: block; margin-bottom: 3px; }
+
+  .mp-panel { display: none; }
+  .mp-panel.active { display: block; }
+
+  .mp-label {
+    font-size: 12px; color: #aa6666; letter-spacing: 3px;
+    margin-bottom: 10px; text-align: center;
+  }
+
+  /* ROOM ID KO'RSATISH */
+  .room-id-box {
+    background: #0a0208; border: 2px solid #441111; border-radius: 8px;
+    padding: 14px 16px; margin: 12px 0;
+    text-align: center; position: relative;
+  }
+  .room-id-label {
+    font-size: 10px; color: #aa6666; letter-spacing: 3px; margin-bottom: 6px;
+  }
+  .room-id-value {
+    font-size: 24px; font-weight: bold; color: #66ff66;
+    text-shadow: 0 0 12px #00ff00; letter-spacing: 4px;
+    word-break: break-all; user-select: all;
+    padding: 4px;
+  }
+  .room-id-copy {
+    margin-top: 8px; padding: 6px 14px;
+    font-family: 'Courier New', monospace; font-size: 11px;
+    letter-spacing: 1.5px; color: #fff;
+    background: linear-gradient(180deg, #333, #111);
+    border: 1px solid #666; border-radius: 5px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .room-id-copy:hover {
+    background: linear-gradient(180deg, #444, #222);
+    border-color: #999;
+  }
+  .room-id-copy.copied {
+    background: linear-gradient(180deg, #22aa22, #0a5a0a);
+    border-color: #66ff66;
+  }
+
+  /* O'YINCHILAR */
+  .mp-players {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px; margin-bottom: 16px;
+  }
+  .mp-player {
+    background: rgba(30, 10, 20, 0.7);
+    border: 2px solid #661111; border-radius: 10px;
+    padding: 12px 14px; text-align: left;
+    transition: all 0.2s ease;
+  }
+  .mp-player.hidden { display: none; }
+  .mp-player.ready {
+    border-color: #66ff66;
+    background: rgba(10, 40, 20, 0.75);
+    box-shadow: 0 0 20px rgba(60, 255, 60, 0.5);
+  }
+  .mp-player .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .mp-player .name {
+    font-size: 13px; font-weight: bold; letter-spacing: 2px;
+  }
+  .mp-player.p1 .name { color: #ff4444; text-shadow: 0 0 8px #ff0000; }
+  .mp-player.p2 .name { color: #66aaff; text-shadow: 0 0 8px #0088ff; }
+  .mp-player.p3 .name { color: #ffcc44; text-shadow: 0 0 8px #ffaa00; }
+  .mp-player .status {
+    font-size: 10px; padding: 3px 8px; border-radius: 4px; letter-spacing: 1px;
+  }
+  .mp-player .status.wait { background: #3a1a1a; color: #ff8888; }
+  .mp-player .status.ok { background: #1a3a1a; color: #88ff88; }
+
+  .mp-player input {
+    width: 100%; padding: 9px 12px;
+    font-family: 'Courier New', monospace; font-size: 15px;
+    letter-spacing: 4px; text-align: center; color: #fff;
+    background: #0a0208; border: 2px solid #441111; border-radius: 6px;
+    outline: none; transition: all 0.2s ease;
+  }
+  .mp-player input:focus {
+    border-color: #ff2222;
+    box-shadow: 0 0 12px rgba(255, 40, 40, 0.6);
+  }
+  .mp-player input.error { border-color: #ff0000; background: #200404; animation: shake 0.4s; }
+  .mp-player input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  .mp-player .error-msg {
+    min-height: 12px; font-size: 10px; color: #ff3333;
+    letter-spacing: 1px; margin-top: 4px;
+  }
+  .mp-player .btn-ok {
+    width: 100%; margin-top: 8px; padding: 8px 12px;
+    font-family: 'Courier New', monospace; font-size: 12px; font-weight: bold;
+    letter-spacing: 2px; color: #fff;
+    background: linear-gradient(180deg, #cc2222, #7a0a0a);
+    border: 1px solid #ff4444; border-radius: 6px;
+    cursor: pointer; text-shadow: 0 0 6px #ff0000;
+    transition: all 0.15s ease;
+  }
+  .mp-player .btn-ok:hover:not(:disabled) {
+    background: linear-gradient(180deg, #ff3333, #9a1010);
+    transform: translateY(-1px);
+  }
+  .mp-player .btn-ok:disabled {
+    background: linear-gradient(180deg, #1a5a1a, #0a3a0a);
+    border-color: #66ff66; color: #88ff88;
+    cursor: default;
+  }
+
+  /* CONNECTION STATUS */
+  .conn-status {
+    padding: 10px 14px; margin: 12px 0;
+    background: rgba(20, 10, 30, 0.8);
+    border: 1px solid #444; border-radius: 8px;
+    font-size: 12px; letter-spacing: 1px; text-align: center;
+  }
+  .conn-status.ok { border-color: #66ff66; color: #88ff88; background: rgba(10, 40, 20, 0.8); }
+  .conn-status.wait { border-color: #ffaa00; color: #ffcc88; background: rgba(40, 30, 5, 0.8); }
+  .conn-status.err { border-color: #ff3333; color: #ff8888; background: rgba(40, 10, 10, 0.8); }
+
+  /* START BUTTON */
+  .mp-start-btn {
+    width: 100%; max-width: 340px; margin: 0 auto; display: block;
+    padding: 14px 20px; font-family: 'Courier New', monospace;
+    font-size: 16px; font-weight: bold; letter-spacing: 3px; color: #fff;
+    background: linear-gradient(180deg, #cc2222, #7a0a0a);
+    border: 2px solid #ff4444; border-radius: 8px; cursor: pointer;
+    text-shadow: 0 0 8px #ff0000;
+    transition: all 0.15s ease; outline: none; user-select: none;
+    margin-top: 14px;
+  }
+  .mp-start-btn:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.02);
+    background: linear-gradient(180deg, #ff3333, #9a1010);
+  }
+  .mp-start-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .mp-start-btn.ready {
+    background: linear-gradient(180deg, #22aa22, #0a5a0a);
+    border-color: #66ff66; text-shadow: 0 0 8px #00ff00;
+    animation: pulse 1.2s infinite;
+  }
+
+  .mp-global-error {
+    min-height: 18px; font-size: 12px; color: #ff3333;
+    letter-spacing: 1px; text-align: center; margin: 10px 0;
+    font-weight: bold;
+  }
+
+  .mp-hint {
+    margin-top: 12px; font-size: 10px; color: #554455;
+    letter-spacing: 1px; font-style: italic; text-align: center;
+  }
+
+  /* OVERLAY */
   #overlay {
-    position: absolute;
-    inset: 0;
+    position: absolute; inset: 0;
     background: rgba(5, 5, 15, 0.92);
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    z-index: 10;
-    padding: 20px;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; z-index: 10; padding: 20px;
   }
   #overlay.show { display: flex; }
   #overlay h1 {
-    font-size: 46px;
-    color: #ff2222;
+    font-size: 46px; color: #ff2222;
     text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000;
-    letter-spacing: 4px;
-    margin-bottom: 18px;
-    animation: pulse 1.5s infinite;
+    letter-spacing: 4px; margin-bottom: 18px; animation: pulse 1.5s infinite;
   }
   #overlay h2 {
-    font-size: 26px;
-    color: #66ff66;
+    font-size: 26px; color: #66ff66;
     text-shadow: 0 0 15px #00ff00;
-    letter-spacing: 2px;
-    margin-bottom: 18px;
+    letter-spacing: 2px; margin-bottom: 18px;
   }
   #overlay p {
-    font-size: 15px;
-    color: #aaa;
-    margin: 6px 0;
-    line-height: 1.6;
-    max-width: 560px;
+    font-size: 15px; color: #aaa; margin: 6px 0; line-height: 1.6; max-width: 560px;
   }
   #overlay .key {
-    display: inline-block;
-    background: #222;
-    border: 1px solid #555;
-    padding: 2px 8px;
-    border-radius: 4px;
-    color: #fff;
-    margin: 0 3px;
-    font-weight: bold;
+    display: inline-block; background: #222; border: 1px solid #555;
+    padding: 2px 8px; border-radius: 4px; color: #fff; margin: 0 3px; font-weight: bold;
   }
-
   .btn {
-    margin-top: 22px;
-    padding: 14px 42px;
-    font-family: 'Courier New', monospace;
-    font-size: 18px;
-    font-weight: bold;
-    letter-spacing: 2px;
-    color: #fff;
+    margin-top: 22px; padding: 14px 42px;
+    font-family: 'Courier New', monospace; font-size: 18px; font-weight: bold;
+    letter-spacing: 2px; color: #fff;
     background: linear-gradient(180deg, #cc2222, #7a0a0a);
-    border: 2px solid #ff4444;
-    border-radius: 8px;
-    cursor: pointer;
+    border: 2px solid #ff4444; border-radius: 8px; cursor: pointer;
     text-shadow: 0 0 8px #ff0000;
-    box-shadow: 0 0 20px rgba(255, 40, 40, 0.6),
-                inset 0 1px 0 rgba(255, 200, 200, 0.3);
-    transition: all 0.15s ease;
-    outline: none;
-    user-select: none;
+    transition: all 0.15s ease; outline: none; user-select: none;
   }
   .btn:hover {
     transform: translateY(-2px) scale(1.03);
-    box-shadow: 0 0 35px rgba(255, 60, 60, 0.9),
-                0 0 60px rgba(255, 40, 40, 0.5),
-                inset 0 1px 0 rgba(255, 200, 200, 0.4);
     background: linear-gradient(180deg, #ff3333, #9a1010);
-  }
-  .btn:active {
-    transform: translateY(1px) scale(0.98);
-    box-shadow: 0 0 15px rgba(255, 40, 40, 0.7);
   }
   .btn.secondary {
     background: linear-gradient(180deg, #333, #111);
-    border-color: #666;
-    text-shadow: 0 0 6px #888;
-    box-shadow: 0 0 15px rgba(120, 120, 120, 0.4);
-    font-size: 14px;
-    padding: 10px 28px;
-    margin-top: 12px;
-  }
-  .btn.secondary:hover {
-    background: linear-gradient(180deg, #444, #222);
-    border-color: #999;
-    box-shadow: 0 0 25px rgba(180, 180, 180, 0.6);
+    border-color: #666; font-size: 14px; padding: 10px 28px; margin-top: 12px;
   }
 
   @keyframes pulse {
@@ -335,51 +354,104 @@
     50% { transform: scale(1.04); }
   }
   #toast {
-    position: absolute;
-    top: 50%;
-    left: 50%;
+    position: absolute; top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 28px;
-    font-weight: bold;
-    color: #ff2222;
-    text-shadow: 0 0 20px #ff0000;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s;
-    letter-spacing: 3px;
-    z-index: 5;
+    font-size: 28px; font-weight: bold; color: #ff2222;
+    text-shadow: 0 0 20px #ff0000; pointer-events: none;
+    opacity: 0; transition: opacity 0.3s; letter-spacing: 3px; z-index: 5;
   }
   #toast.show { opacity: 1; }
+
+  /* Boshqa o'yinchilar nomi */
+  .remote-name {
+    position: absolute;
+    font-size: 11px;
+    color: #66aaff;
+    text-shadow: 0 0 6px #0088ff, 0 0 12px #000;
+    pointer-events: none;
+    z-index: 4;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
 </style>
 </head>
 <body>
 <div id="gameWrap">
   <canvas id="game" width="960" height="540"></canvas>
 
-  <!-- LOADING EKRANI -->
+  <!-- LOADING -->
   <div id="loading">
-    <div class="loading-content">
-      <div class="loading-devil">😈</div>
-      <div class="loading-title">DEVIL TRAP</div>
-      <div class="loading-subtitle">500 LEVEL</div>
+    <div class="loading-devil">😈</div>
+    <div class="loading-title">DEVIL TRAP</div>
+    <div class="loading-subtitle">ONLINE MULTIPLAYER</div>
+    <div class="loading-bar-wrap"><div class="loading-bar" id="loadingBar"></div></div>
+    <div class="loading-percent" id="loadingPercent">0%</div>
+    <div class="loading-status" id="loadingStatus">Yuklanmoqda...</div>
+  </div>
 
-      <div class="loading-bar-wrap">
-        <div class="loading-bar" id="loadingBar"></div>
+  <!-- MULTIPLAYER -->
+  <div id="multiplayer" class="hide">
+    <div class="mp-content">
+      <div class="mp-title">😈 ONLINE ULANISH</div>
+      <div class="mp-subtitle">Boshqa kompyuterdagi o'yinchi bilan o'ynang</div>
+
+      <div class="mp-tabs">
+        <div class="mp-tab active" data-tab="host">
+          <span class="icon">🏠</span> HOST (YARATISH)
+        </div>
+        <div class="mp-tab" data-tab="join">
+          <span class="icon">🔗</span> JOIN (QO'SHILISH)
+        </div>
+        <div class="mp-tab" data-tab="solo">
+          <span class="icon">👤</span> YAKKA O'YIN
+        </div>
       </div>
 
-      <div class="loading-percent" id="loadingPercent">0%</div>
-      <div class="loading-status" id="loadingStatus">Yuklanmoqda...</div>
-
-      <div class="loading-dots">
-        <span></span><span></span><span></span><span></span><span></span>
+      <!-- HOST PANEL -->
+      <div class="mp-panel active" id="panel-host">
+        <div class="mp-label">SIZ XONA YARATASIZ — DO'STINGIZGA ID YUBORING</div>
+        <div class="room-id-box">
+          <div class="room-id-label">XONA ID (DO'STINGIZGA YUBORING):</div>
+          <div class="room-id-value" id="hostRoomId">KUTILMOQDA...</div>
+          <button class="room-id-copy" id="copyRoomBtn">📋 NUSXALASH</button>
+        </div>
+        <div class="conn-status wait" id="hostConnStatus">⏳ Serverga ulanmoqda...</div>
+        <div class="mp-global-error" id="hostError"></div>
+        <button class="mp-start-btn" id="hostStartBtn" disabled>▶ HAMMA TAYYOR BO'LMAGAN</button>
       </div>
+
+      <!-- JOIN PANEL -->
+      <div class="mp-panel" id="panel-join">
+        <div class="mp-label">HOST'DAN OLGAN XONA ID'NI KIRITING</div>
+        <div style="margin: 14px 0;">
+          <input type="text" id="joinRoomInput" placeholder="XONA ID..."
+                 style="width: 100%; padding: 14px 16px;
+                        font-family: 'Courier New', monospace; font-size: 16px;
+                        letter-spacing: 3px; text-align: center; color: #fff;
+                        background: #0a0208; border: 2px solid #441111;
+                        border-radius: 8px; outline: none;">
+        </div>
+        <div class="conn-status wait" id="joinConnStatus">💤 XONA ID KUTILMOQDA</div>
+        <div class="mp-global-error" id="joinError"></div>
+      </div>
+
+      <!-- SOLO PANEL -->
+      <div class="mp-panel" id="panel-solo">
+        <div class="mp-label">YAKKA O'YIN — FAQAT SIZ</div>
+        <div class="conn-status ok">✔ OFFLINE REJIM TAYYOR</div>
+        <button class="mp-start-btn ready" id="soloStartBtn">▶ YAKKA O'YINNI BOSHLASH</button>
+      </div>
+
+      <div class="mp-hint">Parol: 2015 (har bir o'yinchi kiritishi kerak)</div>
     </div>
   </div>
 
   <div id="ui">
     LEVEL: <span class="level" id="lvlDisplay">1</span>/500
-    <span class="progress"><div id="progBar"></div></span><br>
-    QIYINLIK: <span class="diff" id="diffDisplay">OSON</span><br>
+    <span class="progress" style="display:inline-block;width:100px;height:8px;background:#222;border:1px solid #555;border-radius:4px;vertical-align:middle;margin-left:4px;position:relative;overflow:hidden;"><div id="progBar" style="height:100%;background:linear-gradient(90deg,#66ff66,#ffff00,#ff2222);width:0%;transition:width 0.4s;"></div></span><br>
+    QIYINLIK: <span class="diff" id="diffDisplay">OSON</span> |
+    O'YINCHILAR: <span class="players" id="playersDisplay">1</span><br>
+    TARMOQ: <span class="net off" id="netDisplay">OFFLINE</span><br>
     O'LIMLAR: <span class="deaths" id="deathDisplay">0</span>
   </div>
   <div id="toast"></div>
@@ -390,77 +462,410 @@
 (() => {
   "use strict";
 
-  // ==================== LOADING BOSQICHI ====================
-  // 10 sekund davomida loading ekrani ko'rinadi
-  const LOADING_DURATION = 10000; // 10 sekund (ms)
+  // ============================================================
+  // 1) LOADING (10 sekund)
+  // ============================================================
+  const LOADING_DURATION = 10000;
   const loadingBar = document.getElementById('loadingBar');
   const loadingPercent = document.getElementById('loadingPercent');
   const loadingStatus = document.getElementById('loadingStatus');
   const loadingScreen = document.getElementById('loading');
+  const multiplayerScreen = document.getElementById('multiplayer');
 
   const statusMessages = [
     "Tuzoqlar yuklanmoqda...",
     "500 ta level tayyorlanmoqda...",
+    "PeerJS serveri tekshirilmoqda...",
+    "Online ulanish tizimi...",
     "Devil belgisi chizilmoqda...",
     "Spikelar o'tkirlashtirilmoqda...",
-    "Qahramon uyg'otilmoqda...",
     "Yolg'on eshiklar o'rnatilmoqda...",
-    "Shiftlar mustahkamlanmoqda...",
-    "Devorlar harakatga keltirilmoqda...",
     "Zarrachalar tizimi ishga tushirilmoqda...",
     "Kamera sozlanmoqda...",
-    "Ovoz effektlari ulanmoqda...",
-    "Xotira tozalanmoqda...",
+    "Tarmoq protokoli tayyorlanmoqda...",
     "Sahnalar yuklanmoqda...",
     "Yakuniy tekshiruv...",
-    "Tayyor! Boshlashga 3..."
+    "Tayyor! Ulanish oynasi ochilmoqda..."
   ];
 
-  let loadingStart = null;
-  let loadingDone = false;
-
+  let loadingStart = null, loadingDone = false;
   function updateLoading(timestamp) {
     if (!loadingStart) loadingStart = timestamp;
-    const elapsed = timestamp - loadingStart;
-    const progress = Math.min(1, elapsed / LOADING_DURATION);
-
-    // Foizni ko'rsatish
+    const progress = Math.min(1, (timestamp - loadingStart) / LOADING_DURATION);
     const percent = Math.floor(progress * 100);
     loadingBar.style.width = percent + '%';
     loadingPercent.textContent = percent + '%';
-
-    // Status xabarlarini ketma-ket ko'rsatish
-    const msgIdx = Math.min(
-      statusMessages.length - 1,
-      Math.floor(progress * statusMessages.length)
-    );
-    if (loadingStatus.textContent !== statusMessages[msgIdx]) {
-      loadingStatus.textContent = statusMessages[msgIdx];
-    }
-
+    const msgIdx = Math.min(statusMessages.length - 1, Math.floor(progress * statusMessages.length));
+    if (loadingStatus.textContent !== statusMessages[msgIdx]) loadingStatus.textContent = statusMessages[msgIdx];
     if (progress >= 1 && !loadingDone) {
       loadingDone = true;
       loadingStatus.textContent = "TAYYOR!";
       setTimeout(() => {
         loadingScreen.classList.add('hide');
-        showOverlay('menu');
-      }, 400);
+        multiplayerScreen.classList.remove('hide');
+      }, 500);
     }
+    if (!loadingDone) requestAnimationFrame(updateLoading);
+  }
+  requestAnimationFrame(updateLoading);
 
-    if (!loadingDone) {
-      requestAnimationFrame(updateLoading);
+  // ============================================================
+  // 2) PEERJS — ONLINE ULANISH
+  // ============================================================
+  const netDisplay = document.getElementById('netDisplay');
+
+  const net = {
+    peer: null,
+    conn: null,       // host uchun: bitta client bilan; client uchun: host bilan
+    conns: [],        // host uchun: barcha clientlar
+    isHost: false,
+    myId: null,
+    roomId: null,
+    connected: false,
+    remotePlayers: {}  // {id: {x, y, vx, vy, facing, alive, name}}
+  };
+
+  // Host ID yaratish (qisqa va o'qish oson)
+  function generateShortId() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let id = 'DEVIL-';
+    for (let i = 0; i < 5; i++) id += chars[Math.floor(Math.random() * chars.length)];
+    return id;
+  }
+
+  function setNetStatus(text, status) {
+    netDisplay.textContent = text;
+    netDisplay.className = 'net ' + (status === 'ok' ? '' : 'off');
+  }
+
+  // ===== HOST =====
+  function startHost() {
+    const hostStatus = document.getElementById('hostConnStatus');
+    const hostError = document.getElementById('hostError');
+    const hostRoomId = document.getElementById('hostRoomId');
+
+    hostStatus.textContent = '⏳ PeerJS serveriga ulanmoqda...';
+    hostStatus.className = 'conn-status wait';
+    hostError.textContent = '';
+
+    net.roomId = generateShortId();
+    net.isHost = true;
+    hostRoomId.textContent = net.roomId;
+
+    try {
+      net.peer = new Peer(net.roomId, { debug: 1 });
+
+      net.peer.on('open', (id) => {
+        net.myId = id;
+        hostStatus.textContent = '✔ XONA FAOLLASHDI — ID: ' + id;
+        hostStatus.className = 'conn-status ok';
+        setNetStatus('HOST: ' + id, 'ok');
+        updateHostStartBtn();
+      });
+
+      net.peer.on('connection', (conn) => {
+        net.conns.push(conn);
+        registerRemotePlayer(conn);
+
+        conn.on('open', () => {
+          hostStatus.textContent = '✔ O\'YINCHI ULANDI: ' + conn.peer;
+          hostStatus.className = 'conn-status ok';
+          updateHostStartBtn();
+        });
+
+        conn.on('data', (data) => handleNetData(conn, data));
+        conn.on('close', () => {
+          removeRemotePlayer(conn.peer);
+          net.conns = net.conns.filter(c => c !== conn);
+          if (net.conns.length === 0) {
+            hostStatus.textContent = '⏳ O\'yinchilar kutilmoqda...';
+            hostStatus.className = 'conn-status wait';
+          }
+          updateHostStartBtn();
+        });
+        conn.on('error', (e) => {
+          hostError.textContent = '✖ Ulanishda xato: ' + e.message;
+        });
+      });
+
+      net.peer.on('error', (e) => {
+        if (e.type === 'unavailable-id') {
+          // ID band — yangi ID yaratish
+          hostError.textContent = '⚠ ID band, boshqa ID yaratilmoqda...';
+          net.roomId = generateShortId();
+          hostRoomId.textContent = net.roomId;
+          net.peer.destroy();
+          startHost();
+        } else {
+          hostError.textContent = '✖ Xato: ' + e.message;
+          hostStatus.textContent = '✖ ULANISHDA XATO';
+          hostStatus.className = 'conn-status err';
+        }
+      });
+
+    } catch (e) {
+      hostError.textContent = '✖ PeerJS ishlamadi: ' + e.message;
     }
   }
 
-  // Loading boshlash
-  requestAnimationFrame(updateLoading);
+  // ===== JOIN =====
+  function startJoin() {
+    const joinStatus = document.getElementById('joinConnStatus');
+    const joinError = document.getElementById('joinError');
+    const roomId = document.getElementById('joinRoomInput').value.trim().toUpperCase();
 
-  // ==================== SOZLAMALAR ====================
+    if (!roomId) {
+      joinError.textContent = '✖ XONA ID kiriting!';
+      return;
+    }
+
+    joinError.textContent = '';
+    joinStatus.textContent = '⏳ XONAGA ulanmoqda: ' + roomId + '...';
+    joinStatus.className = 'conn-status wait';
+
+    net.isHost = false;
+    net.roomId = roomId;
+
+    // Join qiluvchi o'z Peer'ini yaratadi (random ID)
+    if (net.peer) net.peer.destroy();
+    net.peer = new Peer(null, { debug: 1 });
+
+    net.peer.on('open', (id) => {
+      net.myId = id;
+      setNetStatus('JOIN: ' + id, 'ok');
+
+      // Host bilan bog'lanish
+      net.conn = net.peer.connect(roomId, { reliable: true });
+
+      net.conn.on('open', () => {
+        net.connected = true;
+        joinStatus.textContent = '✔ HOST\'GA ULANILDI!';
+        joinStatus.className = 'conn-status ok';
+
+        // O'zimni tanishtirish
+        net.conn.send({
+          type: 'hello',
+          name: 'O\'yinchi-' + net.myId.substr(0, 4),
+          x: 0, y: 0, vx: 0, vy: 0, facing: 1, alive: true
+        });
+
+        // O'yin boshlanishini kutish
+        joinStatus.textContent = '✔ ULANDI! HOST BOSHLASHINI KUTING...';
+      });
+
+      net.conn.on('data', (data) => handleNetData(net.conn, data));
+      net.conn.on('close', () => {
+        joinStatus.textContent = '✖ HOST UZILDI';
+        joinStatus.className = 'conn-status err';
+        net.connected = false;
+      });
+      net.conn.on('error', (e) => {
+        joinError.textContent = '✖ ' + e.message;
+      });
+    });
+
+    net.peer.on('error', (e) => {
+      joinError.textContent = '✖ Xato: ' + e.message + ' (ID: ' + roomId + ')';
+      joinStatus.textContent = '✖ ULANIB BO\'LMADI';
+      joinStatus.className = 'conn-status err';
+    });
+  }
+
+  // ===== REMOTE PLAYER BOSHQARISH =====
+  function registerRemotePlayer(conn) {
+    net.remotePlayers[conn.peer] = {
+      id: conn.peer,
+      x: 0, y: 0, vx: 0, vy: 0,
+      facing: 1, alive: true, animFrame: 0,
+      name: 'O\'yinchi',
+      ready: false
+    };
+  }
+  function removeRemotePlayer(id) {
+    delete net.remotePlayers[id];
+  }
+
+  // ===== NETWORK DATA HANDLER =====
+  function handleNetData(conn, data) {
+    if (!data || !data.type) return;
+
+    if (data.type === 'hello') {
+      if (net.remotePlayers[conn.peer]) {
+        net.remotePlayers[conn.peer].name = data.name || 'O\'yinchi';
+      }
+      // Host sifatida javob yuborish
+      if (net.isHost && net.conn) {
+        // Bir vaqtda bitta client
+      }
+    }
+
+    if (data.type === 'position') {
+      const p = net.remotePlayers[conn.peer];
+      if (p) {
+        p.x = data.x;
+        p.y = data.y;
+        p.vx = data.vx;
+        p.vy = data.vy;
+        p.facing = data.facing;
+        p.alive = data.alive;
+        p.animFrame = data.animFrame;
+      }
+      // Host bo'lsa, barcha clientlarga uzatish (relay)
+      if (net.isHost) {
+        net.conns.forEach(c => {
+          if (c !== conn && c.open) {
+            try { c.send(data); } catch(e) {}
+          }
+        });
+      }
+    }
+
+    if (data.type === 'password-ok') {
+      const p = net.remotePlayers[conn.peer];
+      if (p) p.ready = true;
+      updateHostStartBtn();
+    }
+
+    if (data.type === 'start-game') {
+      // Clientlar o'yinni boshlaydi
+      game.activePlayers = data.playerCount || 2;
+      document.getElementById('playersDisplay').textContent = game.activePlayers;
+      multiplayerScreen.classList.add('hide');
+      showOverlay('menu');
+    }
+
+    if (data.type === 'level-change') {
+      // Host levelni o'zgartirdi — clientlar ham
+      if (!net.isHost) {
+        loadLevel(data.level - 1);
+      }
+    }
+
+    if (data.type === 'player-dead') {
+      showToast('☠ ' + (data.name || 'O\'yinchi') + ' o\'ldi!');
+    }
+  }
+
+  // ===== YUBORISH =====
+  function sendPosition() {
+    const data = {
+      type: 'position',
+      x: player.x, y: player.y,
+      vx: player.vx, vy: player.vy,
+      facing: player.facing, alive: player.alive,
+      animFrame: player.animFrame
+    };
+    if (net.isHost) {
+      net.conns.forEach(c => { if (c.open) { try { c.send(data); } catch(e) {} } });
+    } else if (net.conn && net.conn.open) {
+      try { net.conn.send(data); } catch(e) {}
+    }
+  }
+
+  function sendPasswordOk() {
+    const data = { type: 'password-ok' };
+    if (net.isHost) {
+      net.conns.forEach(c => { if (c.open) { try { c.send(data); } catch(e) {} } });
+    } else if (net.conn && net.conn.open) {
+      try { net.conn.send(data); } catch(e) {}
+    }
+  }
+
+  function sendStartGame() {
+    const data = { type: 'start-game', playerCount: game.activePlayers };
+    if (net.isHost) {
+      net.conns.forEach(c => { if (c.open) { try { c.send(data); } catch(e) {} } });
+    }
+  }
+
+  // ============================================================
+  // 3) TABS
+  // ============================================================
+  const tabs = document.querySelectorAll('.mp-tab');
+  const panels = {
+    host: document.getElementById('panel-host'),
+    join: document.getElementById('panel-join'),
+    solo: document.getElementById('panel-solo')
+  };
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const name = tab.dataset.tab;
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      Object.keys(panels).forEach(k => panels[k].classList.remove('active'));
+      panels[name].classList.add('active');
+
+      // Host tanlansa va hali yaratilmagan bo'lsa
+      if (name === 'host' && !net.peer) {
+        startHost();
+      }
+    });
+  });
+
+  // Copy room ID
+  document.getElementById('copyRoomBtn').addEventListener('click', () => {
+    const id = net.roomId || document.getElementById('hostRoomId').textContent;
+    if (!id || id === 'KUTILMOQDA...') return;
+    navigator.clipboard.writeText(id).then(() => {
+      const btn = document.getElementById('copyRoomBtn');
+      btn.textContent = '✔ NUSXALANDI!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = '📋 NUSXALASH';
+        btn.classList.remove('copied');
+      }, 1500);
+    });
+  });
+
+  // Solo start
+  document.getElementById('soloStartBtn').addEventListener('click', () => {
+    game.activePlayers = 1;
+    document.getElementById('playersDisplay').textContent = '1';
+    setNetStatus('OFFLINE', 'off');
+    multiplayerScreen.classList.add('hide');
+    showOverlay('menu');
+  });
+
+  // Join — enter
+  document.getElementById('joinRoomInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') startJoin();
+  });
+
+  // Host start tugmasi
+  function updateHostStartBtn() {
+    const btn = document.getElementById('hostStartBtn');
+    const total = 1 + net.conns.filter(c => c.open).length; // host + clientlar
+    if (net.conns.length === 0) {
+      btn.disabled = true;
+      btn.classList.remove('ready');
+      btn.textContent = '▶ O\'YINCHI KUTILMOQDA...';
+    } else {
+      btn.disabled = false;
+      btn.classList.add('ready');
+      btn.textContent = '▶ O\'YINNI BOSHLASH (' + total + ' KISHI)';
+    }
+  }
+
+  document.getElementById('hostStartBtn').addEventListener('click', () => {
+    const total = 1 + net.conns.filter(c => c.open).length;
+    game.activePlayers = total;
+    document.getElementById('playersDisplay').textContent = total;
+    setNetStatus('ONLINE: ' + total + ' KISHI', 'ok');
+
+    // Clientlarga signal yuborish
+    sendStartGame();
+
+    multiplayerScreen.classList.add('hide');
+    showOverlay('menu');
+  });
+
+  // ============================================================
+  // 4) O'YIN KODI
+  // ============================================================
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  const W = canvas.width;
-  const H = canvas.height;
-  const TILE = 30;
+  const W = canvas.width, H = canvas.height, TILE = 30;
 
   const overlay = document.getElementById('overlay');
   const toastEl = document.getElementById('toast');
@@ -474,10 +879,9 @@
     level: 1,
     maxLevel: 500,
     deaths: 0,
+    activePlayers: 1,
     camera: { x: 0, y: 0 },
-    shake: 0,
-    time: 0,
-    particles: []
+    shake: 0, time: 0, particles: []
   };
 
   const keys = {};
@@ -488,6 +892,8 @@
   };
 
   window.addEventListener('keydown', (e) => {
+    if (!loadingScreen.classList.contains('hide')) return;
+    if (!multiplayerScreen.classList.contains('hide')) return;
     const k = keyMap[e.key];
     if (k) { keys[k] = true; e.preventDefault(); }
     if (e.key === 'r' || e.key === 'R') restartLevel();
@@ -500,22 +906,13 @@
 
   const player = {
     x: 0, y: 0, w: 20, h: 28,
-    vx: 0, vy: 0,
-    onGround: false,
-    facing: 1,
-    alive: true,
-    coyote: 0,
-    jumpBuffer: 0,
-    animFrame: 0
+    vx: 0, vy: 0, onGround: false, facing: 1, alive: true,
+    coyote: 0, jumpBuffer: 0, animFrame: 0
   };
 
-  const GRAVITY = 0.65;
-  const MOVE_ACCEL = 0.9;
-  const MOVE_MAX = 4.2;
-  const FRICTION = 0.75;
-  const JUMP_POWER = -12.5;
+  const GRAVITY = 0.65, MOVE_ACCEL = 0.9, MOVE_MAX = 4.2;
+  const FRICTION = 0.75, JUMP_POWER = -12.5;
 
-  // ==================== SEEDED RANDOM ====================
   function mulberry32(a) {
     return function() {
       a |= 0; a = a + 0x6D2B79F5 | 0;
@@ -525,302 +922,46 @@
     };
   }
 
-  // ==================== QO'LDA YOZILGAN 10 LEVEL ====================
   const handLevels = [];
+  handLevels.push({ difficulty: 'OSON', width: 32, height: 18, map: [
+    "################################","#..............................#","#..............................#","#..............................#","#..............................#","#..............................#","#..............................#","#..............................#","#..............................#","#..............................#","#..............................#","#..............................#","#..............................#","#..........#####...........#...#","#.P........................#.E.#","#..........................#...#","################################","################################"
+  ], events: [] });
+  handLevels.push({ difficulty: 'OSON+', width: 34, height: 18, map: [
+    "##################################","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#.P..........................E...#","#................................#","#................................#","##################################"
+  ], events: [{ type: 'ceilingSpike', x: 12, w: 3, triggerX: 10 }] });
+  handLevels.push({ difficulty: "O'RTACHA-", width: 34, height: 18, map: [
+    "##################################","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#................................#","#.P..........................E...#","#................................#","#................................#","##################################"
+  ], events: [{ type: 'fakeExit', x: 16, y: 14 }] });
+  handLevels.push({ difficulty: "O'RTACHA", width: 36, height: 18, map: [
+    "####################################","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#.P.....#####.....#####.....#####..#","#####...#####.....#####.....####...#","#####...#####.....#####.....####.E.#","####################################"
+  ], events: [{ type: 'ceilingSpike', x: 16, w: 3, triggerX: 14 }] });
+  handLevels.push({ difficulty: "O'RTACHA+", width: 36, height: 18, map: [
+    "####################################","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#..................................#","#.P..............................E.#","#..................................#","#..................................#","####################################"
+  ], events: [{ type: 'ceilingCrush', triggers: [10, 18, 26] }] });
+  handLevels.push({ difficulty: 'QIYIN-', width: 38, height: 18, map: [
+    "######################################","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#.P................................E.#","#....................................#","#....................................#","######################################"
+  ], events: [{ type: 'movingWall', x: 22, w: 1, h: 15, speed: 0.06 }] });
+  handLevels.push({ difficulty: 'QIYIN', width: 38, height: 18, map: [
+    "######################################","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#....................................#","#.P..........H....................E..#","#................................#...#","#................................#...#","######################################"
+  ], events: [{ type: 'fakeExit', x: 13, y: 14 },{ type: 'ceilingSpike', x: 22, w: 3, triggerX: 20 }] });
+  handLevels.push({ difficulty: 'QIYIN+', width: 40, height: 18, map: [
+    "########################################","#......................................#","#......................................#","#......................................#","#......................................#","#......................................#","#......................................#","#......................................#","#......................................#","#......................................#","#......................................#","#......................................#","#......................................#","#......................................#","#.P........H.......................E...#","#......................................#","#......................................#","########################################"
+  ], events: [{ type: 'fakeExit', x: 11, y: 14 },{ type: 'ceilingSpike', x: 18, w: 3, triggerX: 16 },{ type: 'movingWall', x: 26, w: 1, h: 15, speed: 0.07 }] });
+  handLevels.push({ difficulty: 'JUDA QIYIN', width: 42, height: 18, map: [
+    "##########################################","#........................................#","#........................................#","#........................................#","#........................................#","#........................................#","#........................................#","#........................................#","#........................................#","#........................................#","#........................................#","#........................................#","#........................................#","#........................................#","#.P..........H......................E....#","#........................................#","#........................................#","##########################################"
+  ], events: [{ type: 'fakeExit', x: 13, y: 14 },{ type: 'ceilingSpike', x: 20, w: 3, triggerX: 18 },{ type: 'movingWall', x: 28, w: 1, h: 15, speed: 0.075 },{ type: 'ceilingCrush', triggers: [34, 38] }] });
+  handLevels.push({ difficulty: 'DEVIL 😈', width: 44, height: 18, map: [
+    "############################################","#..........................................#","#..........................................#","#..........................................#","#..........................................#","#..........................................#","#..........................................#","#..........................................#","#..........................................#","#..........................................#","#..........................................#","#..........................................#","#..........................................#","#..........................................#","#.P........H..........................E....#","#..........................................#","#..........................................#","############################################"
+  ], events: [{ type: 'fakeExit', x: 11, y: 14 },{ type: 'ceilingSpike', x: 18, w: 3, triggerX: 16 },{ type: 'ceilingSpike', x: 26, w: 3, triggerX: 24 },{ type: 'movingWall', x: 30, w: 1, h: 15, speed: 0.075 },{ type: 'ceilingCrush', triggers: [37, 41] }] });
 
-  handLevels.push({
-    difficulty: 'OSON',
-    width: 32, height: 18,
-    map: [
-      "################################",
-      "#..............................#",
-      "#..............................#",
-      "#..............................#",
-      "#..............................#",
-      "#..............................#",
-      "#..............................#",
-      "#..............................#",
-      "#..............................#",
-      "#..............................#",
-      "#..............................#",
-      "#..............................#",
-      "#..............................#",
-      "#..........#####...........#...#",
-      "#.P........................#.E.#",
-      "#..........................#...#",
-      "################################",
-      "################################"
-    ],
-    events: []
-  });
-
-  handLevels.push({
-    difficulty: 'OSON+',
-    width: 34, height: 18,
-    map: [
-      "##################################",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#.P..........................E...#",
-      "#................................#",
-      "#................................#",
-      "##################################"
-    ],
-    events: [{ type: 'ceilingSpike', x: 12, w: 3, triggerX: 10 }]
-  });
-
-  handLevels.push({
-    difficulty: "O'RTACHA-",
-    width: 34, height: 18,
-    map: [
-      "##################################",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#................................#",
-      "#.P..........................E...#",
-      "#................................#",
-      "#................................#",
-      "##################################"
-    ],
-    events: [{ type: 'fakeExit', x: 16, y: 14 }]
-  });
-
-  handLevels.push({
-    difficulty: "O'RTACHA",
-    width: 36, height: 18,
-    map: [
-      "####################################",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#.P.....#####.....#####.....#####..#",
-      "#####...#####.....#####.....####...#",
-      "#####...#####.....#####.....####.E.#",
-      "####################################"
-    ],
-    events: [{ type: 'ceilingSpike', x: 16, w: 3, triggerX: 14 }]
-  });
-
-  handLevels.push({
-    difficulty: "O'RTACHA+",
-    width: 36, height: 18,
-    map: [
-      "####################################",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#..................................#",
-      "#.P..............................E.#",
-      "#..................................#",
-      "#..................................#",
-      "####################################"
-    ],
-    events: [{ type: 'ceilingCrush', triggers: [10, 18, 26] }]
-  });
-
-  handLevels.push({
-    difficulty: 'QIYIN-',
-    width: 38, height: 18,
-    map: [
-      "######################################",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#.P................................E.#",
-      "#....................................#",
-      "#....................................#",
-      "######################################"
-    ],
-    events: [{ type: 'movingWall', x: 22, w: 1, h: 15, speed: 0.06 }]
-  });
-
-  handLevels.push({
-    difficulty: 'QIYIN',
-    width: 38, height: 18,
-    map: [
-      "######################################",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#....................................#",
-      "#.P..........H....................E..#",
-      "#................................#...#",
-      "#................................#...#",
-      "######################################"
-    ],
-    events: [
-      { type: 'fakeExit', x: 13, y: 14 },
-      { type: 'ceilingSpike', x: 22, w: 3, triggerX: 20 }
-    ]
-  });
-
-  handLevels.push({
-    difficulty: 'QIYIN+',
-    width: 40, height: 18,
-    map: [
-      "########################################",
-      "#......................................#",
-      "#......................................#",
-      "#......................................#",
-      "#......................................#",
-      "#......................................#",
-      "#......................................#",
-      "#......................................#",
-      "#......................................#",
-      "#......................................#",
-      "#......................................#",
-      "#......................................#",
-      "#......................................#",
-      "#......................................#",
-      "#.P........H.......................E...#",
-      "#......................................#",
-      "#......................................#",
-      "########################################"
-    ],
-    events: [
-      { type: 'fakeExit', x: 11, y: 14 },
-      { type: 'ceilingSpike', x: 18, w: 3, triggerX: 16 },
-      { type: 'movingWall', x: 26, w: 1, h: 15, speed: 0.07 }
-    ]
-  });
-
-  handLevels.push({
-    difficulty: 'JUDA QIYIN',
-    width: 42, height: 18,
-    map: [
-      "##########################################",
-      "#........................................#",
-      "#........................................#",
-      "#........................................#",
-      "#........................................#",
-      "#........................................#",
-      "#........................................#",
-      "#........................................#",
-      "#........................................#",
-      "#........................................#",
-      "#........................................#",
-      "#........................................#",
-      "#........................................#",
-      "#........................................#",
-      "#.P..........H......................E....#",
-      "#........................................#",
-      "#........................................#",
-      "##########################################"
-    ],
-    events: [
-      { type: 'fakeExit', x: 13, y: 14 },
-      { type: 'ceilingSpike', x: 20, w: 3, triggerX: 18 },
-      { type: 'movingWall', x: 28, w: 1, h: 15, speed: 0.075 },
-      { type: 'ceilingCrush', triggers: [34, 38] }
-    ]
-  });
-
-  handLevels.push({
-    difficulty: 'DEVIL 😈',
-    width: 44, height: 18,
-    map: [
-      "############################################",
-      "#..........................................#",
-      "#..........................................#",
-      "#..........................................#",
-      "#..........................................#",
-      "#..........................................#",
-      "#..........................................#",
-      "#..........................................#",
-      "#..........................................#",
-      "#..........................................#",
-      "#..........................................#",
-      "#..........................................#",
-      "#..........................................#",
-      "#..........................................#",
-      "#.P........H..........................E....#",
-      "#..........................................#",
-      "#..........................................#",
-      "############################################"
-    ],
-    events: [
-      { type: 'fakeExit', x: 11, y: 14 },
-      { type: 'ceilingSpike', x: 18, w: 3, triggerX: 16 },
-      { type: 'ceilingSpike', x: 26, w: 3, triggerX: 24 },
-      { type: 'movingWall', x: 30, w: 1, h: 15, speed: 0.075 },
-      { type: 'ceilingCrush', triggers: [37, 41] }
-    ]
-  });
-
-  // ==================== LEVEL GENERATOR ====================
   function generateLevel(num) {
     const rng = mulberry32(num * 987654321 + 42);
     const diffLevel = Math.min(50, Math.floor((num - 1) / 10) + 1);
-
     const width = Math.min(80, 34 + Math.floor(diffLevel * 0.9));
     const height = 18;
-
-    const diffNames = [
-      'OSON', 'OSON+', "O'RTACHA-", "O'RTACHA", "O'RTACHA+",
-      'QIYIN-', 'QIYIN', 'QIYIN+', 'JUDA QIYIN', 'DEVIL 😈'
-    ];
+    const diffNames = ['OSON', 'OSON+', "O'RTACHA-", "O'RTACHA", "O'RTACHA+", 'QIYIN-', 'QIYIN', 'QIYIN+', 'JUDA QIYIN', 'DEVIL 😈'];
     const diffIdx = Math.min(9, Math.floor((diffLevel - 1) / 5));
     const difficulty = diffNames[diffIdx];
-
     const grid = [];
     for (let y = 0; y < height; y++) {
       const row = [];
@@ -831,99 +972,46 @@
       }
       grid.push(row);
     }
-
-    const startX = 2;
-    const startY = height - 3;
-    const exitX = width - 4;
-    const exitY = height - 3;
-
+    const startX = 2, startY = height - 3;
+    const exitX = width - 4, exitY = height - 3;
     grid[startY][startX] = 'P';
     grid[exitY][exitX] = 'E';
-
     const events = [];
     const usedX = new Set([startX, exitX]);
-
     if (diffLevel >= 2) {
       const spikeCount = Math.min(4, Math.floor(diffLevel / 8) + 1);
       for (let i = 0; i < spikeCount; i++) {
-        let sx;
-        let tries = 0;
-        do {
-          sx = 6 + Math.floor(rng() * (width - 14));
-          tries++;
-        } while ((usedX.has(sx) || usedX.has(sx-1) || usedX.has(sx+1)) && tries < 30);
+        let sx, tries = 0;
+        do { sx = 6 + Math.floor(rng() * (width - 14)); tries++; }
+        while ((usedX.has(sx) || usedX.has(sx-1) || usedX.has(sx+1)) && tries < 30);
         if (tries >= 30) continue;
         usedX.add(sx);
-        const triggerX = Math.max(startX + 2, sx - 2 - Math.floor(rng() * 2));
-        events.push({
-          type: 'ceilingSpike',
-          x: sx, w: 2 + Math.floor(rng() * 2),
-          triggerX
-        });
+        events.push({ type: 'ceilingSpike', x: sx, w: 2 + Math.floor(rng() * 2), triggerX: Math.max(startX + 2, sx - 2) });
       }
-
       if (diffLevel >= 3 && rng() < 0.55) {
-        let fx;
-        let tries = 0;
-        do {
-          fx = 6 + Math.floor(rng() * (width - 14));
-          tries++;
-        } while ((usedX.has(fx) || usedX.has(fx-1) || usedX.has(fx+1) || Math.abs(fx - exitX) < 4) && tries < 30);
-        if (tries < 30) {
-          usedX.add(fx);
-          events.push({ type: 'fakeExit', x: fx, y: height - 3 });
-        }
+        let fx, tries = 0;
+        do { fx = 6 + Math.floor(rng() * (width - 14)); tries++; }
+        while ((usedX.has(fx) || usedX.has(fx-1) || usedX.has(fx+1) || Math.abs(fx - exitX) < 4) && tries < 30);
+        if (tries < 30) { usedX.add(fx); events.push({ type: 'fakeExit', x: fx, y: height - 3 }); }
       }
-
       if (diffLevel >= 5) {
         const crushCount = Math.min(3, Math.floor(diffLevel / 12) + 1);
         const triggers = [];
         for (let i = 0; i < crushCount; i++) {
-          let tx;
-          let tries = 0;
-          do {
-            tx = 8 + Math.floor(rng() * (width - 16));
-            tries++;
-          } while (usedX.has(tx) && tries < 20);
-          usedX.add(tx);
-          triggers.push(tx);
+          let tx, tries = 0;
+          do { tx = 8 + Math.floor(rng() * (width - 16)); tries++; }
+          while (usedX.has(tx) && tries < 20);
+          usedX.add(tx); triggers.push(tx);
         }
-        if (triggers.length) {
-          events.push({ type: 'ceilingCrush', triggers });
-        }
+        if (triggers.length) events.push({ type: 'ceilingCrush', triggers });
       }
-
       if (diffLevel >= 4) {
         const wallX = 14 + Math.floor(rng() * (width - 22));
         const speed = 0.045 + rng() * 0.04 + diffLevel * 0.0008;
         usedX.add(wallX);
-        events.push({
-          type: 'movingWall',
-          x: wallX, w: 1, h: height - 3,
-          speed
-        });
-      }
-
-      if (diffLevel >= 7) {
-        const extra = Math.min(3, Math.floor(diffLevel / 15));
-        for (let i = 0; i < extra; i++) {
-          let sx;
-          let tries = 0;
-          do {
-            sx = 6 + Math.floor(rng() * (width - 14));
-            tries++;
-          } while ((usedX.has(sx) || usedX.has(sx-1) || usedX.has(sx+1)) && tries < 20);
-          if (tries >= 20) continue;
-          usedX.add(sx);
-          events.push({
-            type: 'ceilingSpike',
-            x: sx, w: 2 + Math.floor(rng() * 2),
-            triggerX: Math.max(startX + 2, sx - 2)
-          });
-        }
+        events.push({ type: 'movingWall', x: wallX, w: 1, h: height - 3, speed });
       }
     }
-
     const map = grid.map(row => row.join(''));
     return { difficulty, width, height, map, events };
   }
@@ -933,7 +1021,6 @@
     return generateLevel(idx + 1);
   }
 
-  // ==================== LEVEL PARSER ====================
   let currentLevel = null;
 
   function parseLevel(idx) {
@@ -941,7 +1028,6 @@
     const grid = def.map.map(r => r.split(''));
     let startPos = { x: 2, y: 2 };
     let exitPos = { x: 10, y: 10 };
-
     for (let y = 0; y < grid.length; y++) {
       for (let x = 0; x < grid[y].length; x++) {
         const c = grid[y][x];
@@ -950,73 +1036,29 @@
         else if (c === 'H') { grid[y][x] = '.'; }
       }
     }
-
     const events = [];
     (def.events || []).forEach(ev => {
       const e = JSON.parse(JSON.stringify(ev));
-      e.active = false;
-      e.triggered = false;
-      e.progress = 0;
-      if (e.type === 'ceilingSpike') {
-        e.y = 1;
-        e.h = e.h || 13;
-        e.falling = false;
-        e.spikeY = e.y * TILE;
-        e.triggered = false;
-      }
-      if (e.type === 'fakeExit') {
-        e.visible = true;
-        e.x = e.x * TILE;
-        e.y = e.y * TILE;
-        e.activated = false;
-        e.spikeY = -200;
-        e.spikeVy = 0;
-      }
-      if (e.type === 'ceilingCrush') {
-        e.triggeredSet = [];
-        e.y = 0;
-        e.w = W;
-        e.h = 0;
-        e.targetH = 13 * TILE;
-        e.crushing = false;
-      }
-      if (e.type === 'movingWall') {
-        e.x = e.x * TILE;
-        e.y = (e.y || 1) * TILE;
-        e.w = e.w * TILE;
-        e.h = e.h * TILE;
-        e.dir = 1;
-        e.startX = e.x;
-        e.range = 8 * TILE;
-      }
+      e.triggered = false; e.progress = 0;
+      if (e.type === 'ceilingSpike') { e.y = 1; e.h = e.h || 13; e.falling = false; e.spikeY = e.y * TILE; }
+      if (e.type === 'fakeExit') { e.visible = true; e.x = e.x * TILE; e.y = e.y * TILE; e.activated = false; e.spikeY = -200; e.spikeVy = 0; }
+      if (e.type === 'ceilingCrush') { e.triggeredSet = []; e.y = 0; e.w = W; e.h = 0; e.targetH = 13 * TILE; e.crushing = false; }
+      if (e.type === 'movingWall') { e.x = e.x * TILE; e.y = (e.y || 1) * TILE; e.w = e.w * TILE; e.h = e.h * TILE; e.dir = 1; e.startX = e.x; e.range = 8 * TILE; }
       events.push(e);
     });
-
-    return {
-      grid,
-      width: def.width,
-      height: def.height,
-      startPos,
-      exitPos,
-      events,
-      definition: def
-    };
+    return { grid, width: def.width, height: def.height, startPos, exitPos, events, definition: def };
   }
 
   function loadLevel(idx) {
     currentLevel = parseLevel(idx);
     game.level = idx + 1;
     game.state = 'playing';
-    game.particles = [];
-    game.shake = 0;
+    game.particles = []; game.shake = 0;
     player.x = currentLevel.startPos.x * TILE + (TILE - player.w) / 2;
     player.y = currentLevel.startPos.y * TILE + (TILE - player.h);
     player.vx = 0; player.vy = 0;
-    player.onGround = false;
-    player.alive = true;
-    player.facing = 1;
-    player.coyote = 0;
-    player.jumpBuffer = 0;
+    player.onGround = false; player.alive = true; player.facing = 1;
+    player.coyote = 0; player.jumpBuffer = 0;
     lvlDisplay.textContent = game.level;
     deathDisplay.textContent = game.deaths;
     diffDisplay.textContent = currentLevel.definition.difficulty;
@@ -1028,49 +1070,34 @@
     if (game.state === 'menu' || game.state === 'final') return;
     loadLevel(game.level - 1);
   }
-
   function nextLevel() {
-    if (game.level < game.maxLevel) {
-      loadLevel(game.level);
-    } else {
-      showFinalWin();
-    }
+    if (game.level < game.maxLevel) loadLevel(game.level);
+    else showFinalWin();
   }
-
   function startGame() {
-    game.level = 1;
-    game.deaths = 0;
-    loadLevel(0);
+    game.level = 1; game.deaths = 0; loadLevel(0);
   }
 
-  // ==================== TO'SIQ ====================
   function isSolid(tx, ty) {
     if (ty < 0 || ty >= currentLevel.grid.length) return false;
     if (tx < 0 || tx >= currentLevel.grid[0].length) return true;
     return currentLevel.grid[ty][tx] === '#';
   }
-
   function rectCollides(x, y, w, h) {
-    const x1 = Math.floor(x / TILE);
-    const x2 = Math.floor((x + w - 1) / TILE);
-    const y1 = Math.floor(y / TILE);
-    const y2 = Math.floor((y + h - 1) / TILE);
-    for (let ty = y1; ty <= y2; ty++) {
-      for (let tx = x1; tx <= x2; tx++) {
+    const x1 = Math.floor(x / TILE), x2 = Math.floor((x + w - 1) / TILE);
+    const y1 = Math.floor(y / TILE), y2 = Math.floor((y + h - 1) / TILE);
+    for (let ty = y1; ty <= y2; ty++)
+      for (let tx = x1; tx <= x2; tx++)
         if (isSolid(tx, ty)) return true;
-      }
-    }
     return false;
   }
 
-  // ==================== HARAKAT ====================
+  let posSendTimer = 0;
   function updatePlayer() {
     if (!player.alive) return;
-
     let move = 0;
     if (keys.left) move -= 1;
     if (keys.right) move += 1;
-
     if (move !== 0) {
       player.vx += move * MOVE_ACCEL;
       player.facing = move;
@@ -1079,109 +1106,62 @@
       player.vx *= FRICTION;
       if (Math.abs(player.vx) < 0.1) player.vx = 0;
     }
-
-    if (player.onGround) player.coyote = 8;
-    else if (player.coyote > 0) player.coyote--;
-
-    if (keys.jump) {
-      if (player.jumpBuffer === 0) player.jumpBuffer = 8;
-    }
+    if (player.onGround) player.coyote = 8; else if (player.coyote > 0) player.coyote--;
+    if (keys.jump) { if (player.jumpBuffer === 0) player.jumpBuffer = 8; }
     if (player.jumpBuffer > 0) player.jumpBuffer--;
-
     if (player.jumpBuffer > 0 && player.coyote > 0) {
-      player.vy = JUMP_POWER;
-      player.onGround = false;
-      player.coyote = 0;
-      player.jumpBuffer = 0;
+      player.vy = JUMP_POWER; player.onGround = false; player.coyote = 0; player.jumpBuffer = 0;
       spawnParticles(player.x + player.w/2, player.y + player.h, 6, '#66ff66');
     }
-
     if (!keys.jump && player.vy < -5) player.vy *= 0.85;
-
-    player.vy += GRAVITY;
-    if (player.vy > 18) player.vy = 18;
-
+    player.vy += GRAVITY; if (player.vy > 18) player.vy = 18;
     let nx = player.x + player.vx;
-    if (!rectCollides(nx, player.y, player.w, player.h)) {
-      player.x = nx;
-    } else {
+    if (!rectCollides(nx, player.y, player.w, player.h)) { player.x = nx; }
+    else {
       let stepped = false;
       for (let step = 1; step <= 6; step++) {
-        if (!rectCollides(nx, player.y - step, player.w, player.h)) {
-          player.y -= step;
-          player.x = nx;
-          stepped = true;
-          break;
-        }
+        if (!rectCollides(nx, player.y - step, player.w, player.h)) { player.y -= step; player.x = nx; stepped = true; break; }
       }
       if (!stepped) player.vx = 0;
     }
-
     let ny = player.y + player.vy;
-    if (!rectCollides(player.x, ny, player.w, player.h)) {
-      player.y = ny;
-      player.onGround = false;
-    } else {
+    if (!rectCollides(player.x, ny, player.w, player.h)) { player.y = ny; player.onGround = false; }
+    else {
       if (player.vy > 0) {
         player.y = Math.floor((player.y + player.h) / TILE) * TILE - player.h;
-        if (player.vy > 8) {
-          spawnParticles(player.x + player.w/2, player.y + player.h, 5, '#888');
-        }
+        if (player.vy > 8) spawnParticles(player.x + player.w/2, player.y + player.h, 5, '#888');
         player.onGround = true;
-      } else {
-        player.y = Math.floor(player.y / TILE) * TILE + TILE;
-      }
+      } else { player.y = Math.floor(player.y / TILE) * TILE + TILE; }
       player.vy = 0;
     }
-
     if (Math.abs(player.vx) > 0.5 && player.onGround) player.animFrame += 0.3;
-
     if (player.x < 0) player.x = 0;
-    if (player.x + player.w > currentLevel.width * TILE) {
-      player.x = currentLevel.width * TILE - player.w;
-    }
-    if (player.y > H + 100) {
-      killPlayer();
-    }
+    if (player.x + player.w > currentLevel.width * TILE) player.x = currentLevel.width * TILE - player.w;
+    if (player.y > H + 100) killPlayer();
+
+    // Har 3 frame'da pozitsiya yuborish (online)
+    posSendTimer++;
+    if (posSendTimer % 3 === 0) sendPosition();
   }
 
   function killPlayer() {
     if (!player.alive) return;
-    player.alive = false;
-    game.deaths++;
-    deathDisplay.textContent = game.deaths;
+    player.alive = false; game.deaths++; deathDisplay.textContent = game.deaths;
     game.shake = 20;
     spawnParticles(player.x + player.w/2, player.y + player.h/2, 25, '#ff2222');
     showToast("☠ O'LDINGIZ!");
-    setTimeout(() => {
-      if (game.state !== 'menu') {
-        loadLevel(game.level - 1);
-      }
-    }, 700);
+    setTimeout(() => { if (game.state !== 'menu') loadLevel(game.level - 1); }, 700);
   }
 
   function spawnParticles(x, y, count, color) {
     for (let i = 0; i < count; i++) {
-      game.particles.push({
-        x, y,
-        vx: (Math.random() - 0.5) * 8,
-        vy: (Math.random() - 0.5) * 8 - 2,
-        life: 30 + Math.random() * 30,
-        maxLife: 60,
-        color,
-        size: 2 + Math.random() * 4
-      });
+      game.particles.push({ x, y, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8 - 2, life: 30 + Math.random() * 30, maxLife: 60, color, size: 2 + Math.random() * 4 });
     }
   }
-
   function updateParticles() {
     for (let i = game.particles.length - 1; i >= 0; i--) {
       const p = game.particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vy += 0.3;
-      p.vx *= 0.98;
-      p.life--;
+      p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.vx *= 0.98; p.life--;
       if (p.life <= 0) game.particles.splice(i, 1);
     }
   }
@@ -1189,111 +1169,54 @@
   function updateEvents() {
     if (!currentLevel) return;
     const px = player.x + player.w / 2;
-    const py = player.y + player.h / 2;
-
     currentLevel.events.forEach(ev => {
       if (ev.type === 'ceilingSpike') {
-        if (!ev.triggered && px > ev.triggerX * TILE) {
-          ev.triggered = true;
-          ev.falling = true;
-          game.shake = 8;
-          if (game.level <= 15) showToast("⚠ SHIFTGA QARA!");
-        }
+        if (!ev.triggered && px > ev.triggerX * TILE) { ev.triggered = true; ev.falling = true; game.shake = 8; }
         if (ev.falling) {
-          ev.progress += 1.4;
-          ev.spikeY += ev.progress;
-          const spikeH = ev.h * TILE;
-          const spikeX = ev.x * TILE;
-          const spikeW = ev.w * TILE;
-          if (player.alive &&
-              px > spikeX && px < spikeX + spikeW &&
-              player.y + player.h > ev.spikeY && player.y < ev.spikeY + spikeH) {
-            killPlayer();
-          }
+          ev.progress += 1.4; ev.spikeY += ev.progress;
+          const spikeH = ev.h * TILE, spikeX = ev.x * TILE, spikeW = ev.w * TILE;
+          if (player.alive && px > spikeX && px < spikeX + spikeW && player.y + player.h > ev.spikeY && player.y < ev.spikeY + spikeH) killPlayer();
         }
       }
-
       if (ev.type === 'fakeExit') {
-        if (ev.visible && player.alive &&
-            player.x + player.w > ev.x && player.x < ev.x + TILE * 1.2 &&
-            player.y + player.h > ev.y && player.y < ev.y + TILE * 1.2) {
-          ev.visible = false;
-          ev.activated = true;
-          ev.spikeVy = 0;
-          ev.spikeY = -100;
-          game.shake = 15;
-          if (game.level <= 15) showToast("😈 YOLG'ON ESHIK!");
+        if (ev.visible && player.alive && player.x + player.w > ev.x && player.x < ev.x + TILE * 1.2 && player.y + player.h > ev.y && player.y < ev.y + TILE * 1.2) {
+          ev.visible = false; ev.activated = true; ev.spikeVy = 0; ev.spikeY = -100; game.shake = 15;
         }
         if (ev.activated) {
-          ev.spikeVy += 0.8;
-          ev.spikeY += ev.spikeVy;
-          if (player.alive &&
-              player.x + player.w > ev.x && player.x < ev.x + TILE * 1.5 &&
-              player.y + player.h > ev.spikeY && player.y < ev.spikeY + 60) {
-            killPlayer();
-          }
+          ev.spikeVy += 0.8; ev.spikeY += ev.spikeVy;
+          if (player.alive && player.x + player.w > ev.x && player.x < ev.x + TILE * 1.5 && player.y + player.h > ev.spikeY && player.y < ev.spikeY + 60) killPlayer();
         }
       }
-
       if (ev.type === 'ceilingCrush') {
         ev.triggeredSet = ev.triggeredSet || [];
         ev.triggers.forEach(tx => {
-          if (!ev.triggeredSet.includes(tx) && px > tx * TILE) {
-            ev.triggeredSet.push(tx);
-            ev.crushing = true;
-          }
+          if (!ev.triggeredSet.includes(tx) && px > tx * TILE) { ev.triggeredSet.push(tx); ev.crushing = true; }
         });
         if (ev.crushing) {
           if (ev.h < ev.targetH) {
-            ev.h += 3;
-            if (ev.h >= ev.targetH) ev.h = ev.targetH;
-            if (player.alive && player.y < ev.h) {
-              killPlayer();
-            }
+            ev.h += 3; if (ev.h >= ev.targetH) ev.h = ev.targetH;
+            if (player.alive && player.y < ev.h) killPlayer();
           }
         }
       }
-
       if (ev.type === 'movingWall') {
         ev.x += ev.speed * ev.dir * TILE / 3;
         if (ev.x > ev.startX + ev.range) ev.dir = -1;
         if (ev.x < ev.startX) ev.dir = 1;
-        if (player.alive &&
-            player.x + player.w > ev.x && player.x < ev.x + ev.w &&
-            player.y + player.h > ev.y && player.y < ev.y + ev.h) {
-          killPlayer();
-        }
+        if (player.alive && player.x + player.w > ev.x && player.x < ev.x + ev.w && player.y + player.h > ev.y && player.y < ev.y + ev.h) killPlayer();
       }
     });
   }
 
   function checkExit() {
     if (!currentLevel || !player.alive) return;
-    const ex = currentLevel.exitPos.x * TILE;
-    const ey = currentLevel.exitPos.y * TILE;
-    if (player.x + player.w > ex && player.x < ex + TILE &&
-        player.y + player.h > ey && player.y < ey + TILE) {
+    const ex = currentLevel.exitPos.x * TILE, ey = currentLevel.exitPos.y * TILE;
+    if (player.x + player.w > ex && player.x < ex + TILE && player.y + player.h > ey && player.y < ey + TILE) {
       game.state = 'win';
       spawnParticles(ex + TILE/2, ey + TILE/2, 30, '#66ff66');
       if (game.level < game.maxLevel) {
-        if (game.level % 25 === 0) {
-          setTimeout(() => {
-            if (game.state === 'win') nextLevel();
-          }, 500);
-          overlay.classList.add('show');
-          overlay.innerHTML = `
-            <h2>✔ LEVEL ${game.level} / 500</h2>
-            <p style="color:#66ff66">${currentLevel.definition.difficulty}</p>
-            <p style="color:#ff6666;font-style:italic;margin-top:10px">
-              Keyingi level yaqinlashmoqda...
-            </p>
-          `;
-        } else {
-          showOverlay('win');
-        }
-      } else {
-        showFinalWin();
-      }
+        showOverlay('win');
+      } else showFinalWin();
     }
   }
 
@@ -1322,18 +1245,13 @@
       overlay.innerHTML = `
         <h1>DEVIL TRAP</h1>
         <h2>500 LEVEL</h2>
-        <p>Bu oddiy platformer emas. Har bir qadam — tuzoq.</p>
+        <p>O'yinchilar: <span style="color:#66ccff;font-weight:bold">${game.activePlayers}</span></p>
         <p>Maqsad: <span style="color:#66ff66">EXIT</span> eshigiga yetib borish.</p>
-        <p style="color:#ff88ff; margin-top:10px">
-          <b>500 ta level</b> — OSONdan DEVILgacha qiyinlashib boradi
-        </p>
         <p style="margin-top:14px">
           <span class="key">A</span> <span class="key">D</span> yoki
-          <span class="key">←</span> <span class="key">→</span> — yurish &nbsp;|&nbsp;
+          <span class="key">←</span> <span class="key">→</span> — yurish |
           <span class="key">SPACE</span> — sakrash
         </p>
-        <p><span class="key">R</span> — qayta boshlash &nbsp;|&nbsp;
-           <span class="key">ESC</span> — pauza</p>
         <button class="btn" id="btnStart">▶ BOSHLASH</button>
       `;
       document.getElementById('btnStart').onclick = () => startGame();
@@ -1350,304 +1268,195 @@
       overlay.innerHTML = `
         <h2>⏸ PAUZA</h2>
         <p>Level ${game.level} / 500 — ${currentLevel.definition.difficulty}</p>
-        <p>O'limlar: ${game.deaths}</p>
+        <p>O'yinchilar: ${game.activePlayers} | O'limlar: ${game.deaths}</p>
         <button class="btn" id="btnResume">▶ DAVOM ETISH</button>
         <button class="btn secondary" id="btnRestart">↻ QAYTA BOSHLASH</button>
       `;
       document.getElementById('btnResume').onclick = () => togglePause();
       document.getElementById('btnRestart').onclick = () => {
-        overlay.classList.remove('show');
-        game.state = 'playing';
-        loadLevel(game.level - 1);
+        overlay.classList.remove('show'); game.state = 'playing'; loadLevel(game.level - 1);
       };
     } else if (type === 'final') {
       overlay.innerHTML = `
         <h1>🏆 G'ALABA!</h1>
         <h2>Siz 500 LEVELNI yutdingiz!</h2>
-        <p>O'limlar soni: <span style="color:#ffaa00">${game.deaths}</span></p>
-        <p style="color:#ff6666; margin-top:10px">Siz haqiqiy DEVIL qahramonsiz! 😈</p>
+        <p>O'limlar: <span style="color:#ffaa00">${game.deaths}</span></p>
         <button class="btn" id="btnAgain">↻ YANA O'YNASH</button>
       `;
       document.getElementById('btnAgain').onclick = () => {
-        game.state = 'menu';
-        showOverlay('menu');
+        multiplayerScreen.classList.remove('hide');
+        overlay.classList.remove('show');
       };
     }
   }
 
-  function showFinalWin() {
-    game.state = 'final';
-    showOverlay('final');
-  }
-
+  function showFinalWin() { game.state = 'final'; showOverlay('final'); }
   function togglePause() {
-    if (game.state === 'playing') {
-      game.state = 'paused';
-      showOverlay('paused');
-    } else if (game.state === 'paused') {
-      game.state = 'playing';
-      overlay.classList.remove('show');
-    }
+    if (game.state === 'playing') { game.state = 'paused'; showOverlay('paused'); }
+    else if (game.state === 'paused') { game.state = 'playing'; overlay.classList.remove('show'); }
   }
 
   function drawBackground() {
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#1a1025');
-    g.addColorStop(0.5, '#12121a');
-    g.addColorStop(1, '#0a0a12');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-
+    g.addColorStop(0, '#1a1025'); g.addColorStop(0.5, '#12121a'); g.addColorStop(1, '#0a0a12');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = 'rgba(255, 80, 80, 0.15)';
     for (let i = 0; i < 40; i++) {
-      const sx = (i * 137 + game.time * 0.3) % W;
-      const sy = (i * 89) % H;
+      const sx = (i * 137 + game.time * 0.3) % W, sy = (i * 89) % H;
       ctx.fillRect(sx, sy, 2, 2);
-    }
-
-    ctx.strokeStyle = 'rgba(255, 40, 40, 0.04)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < W; x += 60) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-    }
-    for (let y = 0; y < H; y += 60) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
     }
   }
 
   function drawLevel() {
     if (!currentLevel) return;
-    const camX = game.camera.x;
-    const camY = game.camera.y;
-
+    const camX = game.camera.x, camY = game.camera.y;
     const gx1 = Math.max(0, Math.floor(camX / TILE) - 1);
     const gx2 = Math.min(currentLevel.width - 1, Math.floor((camX + W) / TILE) + 1);
-
     for (let y = 0; y < currentLevel.grid.length; y++) {
       for (let x = gx1; x <= gx2; x++) {
         const c = currentLevel.grid[y][x];
-        const px = x * TILE - camX;
-        const py = y * TILE - camY;
-
+        const px = x * TILE - camX, py = y * TILE - camY;
         if (c === '#') {
           const wg = ctx.createLinearGradient(px, py, px, py + TILE);
-          wg.addColorStop(0, '#3a3a4a');
-          wg.addColorStop(1, '#1e1e2a');
-          ctx.fillStyle = wg;
-          ctx.fillRect(px, py, TILE, TILE);
-
-          ctx.fillStyle = 'rgba(120, 120, 180, 0.35)';
-          ctx.fillRect(px, py, TILE, 3);
-
-          ctx.strokeStyle = 'rgba(0,0,0,0.4)';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(px + 0.5, py + 0.5, TILE - 1, TILE - 1);
-
-          ctx.fillStyle = 'rgba(255,255,255,0.04)';
-          ctx.fillRect(px + 6, py + 8, 4, 4);
-          ctx.fillRect(px + 18, py + 18, 4, 4);
+          wg.addColorStop(0, '#3a3a4a'); wg.addColorStop(1, '#1e1e2a');
+          ctx.fillStyle = wg; ctx.fillRect(px, py, TILE, TILE);
+          ctx.fillStyle = 'rgba(120, 120, 180, 0.35)'; ctx.fillRect(px, py, TILE, 3);
+          ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1; ctx.strokeRect(px + 0.5, py + 0.5, TILE - 1, TILE - 1);
         }
       }
     }
-
-    const ex = currentLevel.exitPos.x * TILE - camX;
-    const ey = currentLevel.exitPos.y * TILE - camY;
+    const ex = currentLevel.exitPos.x * TILE - camX, ey = currentLevel.exitPos.y * TILE - camY;
     drawExit(ex, ey);
-
     currentLevel.events.forEach(ev => {
-      if (ev.type === 'fakeExit' && ev.visible) {
-        drawFakeExit(ev.x - camX, ev.y - camY);
-      }
+      if (ev.type === 'fakeExit' && ev.visible) drawFakeExit(ev.x - camX, ev.y - camY);
     });
   }
 
   function drawExit(x, y) {
     const pulse = Math.sin(game.time * 0.08) * 0.5 + 0.5;
-    ctx.save();
-    ctx.shadowColor = '#00ff00';
-    ctx.shadowBlur = 15 + pulse * 15;
-
+    ctx.save(); ctx.shadowColor = '#00ff00'; ctx.shadowBlur = 15 + pulse * 15;
     const g = ctx.createLinearGradient(x, y, x, y + TILE);
-    g.addColorStop(0, '#00ff44');
-    g.addColorStop(1, '#008822');
-    ctx.fillStyle = g;
-    ctx.fillRect(x + 4, y, TILE - 8, TILE);
-
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(x + 8, y + 6, TILE - 16, TILE - 6);
-
-    ctx.fillStyle = `rgba(0, 255, 100, ${0.5 + pulse * 0.5})`;
-    ctx.fillRect(x + 6, y + 4, TILE - 12, TILE - 8);
+    g.addColorStop(0, '#00ff44'); g.addColorStop(1, '#008822');
+    ctx.fillStyle = g; ctx.fillRect(x + 4, y, TILE - 8, TILE);
+    ctx.shadowBlur = 0; ctx.fillStyle = '#000'; ctx.fillRect(x + 8, y + 6, TILE - 16, TILE - 6);
+    ctx.fillStyle = `rgba(0, 255, 100, ${0.5 + pulse * 0.5})`; ctx.fillRect(x + 6, y + 4, TILE - 12, TILE - 8);
     ctx.restore();
   }
 
   function drawFakeExit(x, y) {
     const pulse = Math.sin(game.time * 0.08) * 0.5 + 0.5;
-    ctx.save();
-    ctx.shadowColor = '#ff2200';
-    ctx.shadowBlur = 10 + pulse * 10;
-
+    ctx.save(); ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 10 + pulse * 10;
     const g = ctx.createLinearGradient(x, y, x, y + TILE);
-    g.addColorStop(0, '#00ff44');
-    g.addColorStop(1, '#008822');
-    ctx.fillStyle = g;
-    ctx.fillRect(x + 4, y, TILE - 8, TILE);
-
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(x + 8, y + 6, TILE - 16, TILE - 6);
-    ctx.fillStyle = `rgba(0, 255, 100, ${0.5 + pulse * 0.5})`;
-    ctx.fillRect(x + 6, y + 4, TILE - 12, TILE - 8);
+    g.addColorStop(0, '#00ff44'); g.addColorStop(1, '#008822');
+    ctx.fillStyle = g; ctx.fillRect(x + 4, y, TILE - 8, TILE);
+    ctx.shadowBlur = 0; ctx.fillStyle = '#000'; ctx.fillRect(x + 8, y + 6, TILE - 16, TILE - 6);
+    ctx.fillStyle = `rgba(0, 255, 100, ${0.5 + pulse * 0.5})`; ctx.fillRect(x + 6, y + 4, TILE - 12, TILE - 8);
     ctx.restore();
   }
 
   function drawEvents() {
     if (!currentLevel) return;
-    const camX = game.camera.x;
-    const camY = game.camera.y;
-
+    const camX = game.camera.x, camY = game.camera.y;
     currentLevel.events.forEach(ev => {
-      if (ev.type === 'ceilingSpike' && ev.falling) {
-        const sx = ev.x * TILE - camX;
-        const sy = ev.spikeY - camY;
-        drawSpikes(sx, sy, ev.w * TILE, ev.h * TILE, 'down');
-      }
-
-      if (ev.type === 'fakeExit' && ev.activated) {
-        const sx = ev.x - camX;
-        const sy = ev.spikeY - camY;
-        drawSpikes(sx, sy, TILE * 1.5, 60, 'down');
-      }
-
+      if (ev.type === 'ceilingSpike' && ev.falling) drawSpikes(ev.x * TILE - camX, ev.spikeY - camY, ev.w * TILE, ev.h * TILE, 'down');
+      if (ev.type === 'fakeExit' && ev.activated) drawSpikes(ev.x - camX, ev.spikeY - camY, TILE * 1.5, 60, 'down');
       if (ev.type === 'ceilingCrush' && ev.h > 0) {
         ctx.save();
         const g = ctx.createLinearGradient(0, 0, 0, ev.h);
-        g.addColorStop(0, '#1e1e2a');
-        g.addColorStop(0.7, '#3a3a4a');
-        g.addColorStop(1, '#5a1a1a');
-        ctx.fillStyle = g;
-        ctx.fillRect(0, -camY, W, ev.h);
+        g.addColorStop(0, '#1e1e2a'); g.addColorStop(0.7, '#3a3a4a'); g.addColorStop(1, '#5a1a1a');
+        ctx.fillStyle = g; ctx.fillRect(0, -camY, W, ev.h);
         drawSpikes(0, ev.h - 20 - camY, W, 20, 'down');
         ctx.restore();
       }
-
       if (ev.type === 'movingWall') {
-        const px = ev.x - camX;
-        const py = ev.y - camY;
-        ctx.save();
-        ctx.shadowColor = '#ff2200';
-        ctx.shadowBlur = 12;
+        const px = ev.x - camX, py = ev.y - camY;
+        ctx.save(); ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 12;
         const g = ctx.createLinearGradient(px, py, px + ev.w, py);
-        g.addColorStop(0, '#5a1a1a');
-        g.addColorStop(0.5, '#aa2a2a');
-        g.addColorStop(1, '#5a1a1a');
-        ctx.fillStyle = g;
-        ctx.fillRect(px, py, ev.w, ev.h);
+        g.addColorStop(0, '#5a1a1a'); g.addColorStop(0.5, '#aa2a2a'); g.addColorStop(1, '#5a1a1a');
+        ctx.fillStyle = g; ctx.fillRect(px, py, ev.w, ev.h);
         ctx.restore();
       }
     });
   }
 
   function drawSpikes(x, y, w, h, dir) {
-    ctx.save();
-    ctx.shadowColor = '#ff0000';
-    ctx.shadowBlur = 10;
+    ctx.save(); ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 10;
     const count = Math.max(1, Math.floor(w / 15));
     const sw = w / count;
     ctx.fillStyle = '#cc2222';
     ctx.beginPath();
     if (dir === 'down') {
-      for (let i = 0; i < count; i++) {
-        const bx = x + i * sw;
-        ctx.moveTo(bx, y);
-        ctx.lineTo(bx + sw / 2, y + h);
-        ctx.lineTo(bx + sw, y);
-      }
+      for (let i = 0; i < count; i++) { const bx = x + i * sw; ctx.moveTo(bx, y); ctx.lineTo(bx + sw / 2, y + h); ctx.lineTo(bx + sw, y); }
     } else {
-      for (let i = 0; i < count; i++) {
-        const bx = x + i * sw;
-        ctx.moveTo(bx, y + h);
-        ctx.lineTo(bx + sw / 2, y);
-        ctx.lineTo(bx + sw, y + h);
-      }
+      for (let i = 0; i < count; i++) { const bx = x + i * sw; ctx.moveTo(bx, y + h); ctx.lineTo(bx + sw / 2, y); ctx.lineTo(bx + sw, y + h); }
     }
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,100,100,0.5)';
-    ctx.fill();
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,100,100,0.5)'; ctx.fill();
     ctx.restore();
+  }
+
+  function drawPlayerAt(x, y, w, h, facing, animFrame, isRemote, color1, color2) {
+    const camX = game.camera.x, camY = game.camera.y;
+    const px = x - camX, py = y - camY;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath(); ctx.ellipse(px + w/2, py + h + 4, w * 0.7, 3, 0, 0, Math.PI * 2); ctx.fill();
+    const bob = 0;
+    ctx.fillStyle = color2 || '#8a1a1a';
+    ctx.fillRect(px + 2, py + h - 8 + bob, 6, 8 - bob);
+    ctx.fillRect(px + w - 8, py + h - 8 - bob, 6, 8 + bob);
+    const bg = ctx.createLinearGradient(px, py, px, py + h);
+    bg.addColorStop(0, color1 || '#ff4444');
+    bg.addColorStop(1, color2 || '#aa1111');
+    ctx.fillStyle = bg; ctx.fillRect(px, py + bob, w, h - 8);
+    ctx.fillStyle = isRemote ? '#88aaff' : '#ff6666';
+    ctx.beginPath(); ctx.arc(px + w/2, py + 6 + bob, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    const eyeOff = facing > 0 ? 2 : -3;
+    ctx.fillRect(px + w/2 - 2 + eyeOff, py + 4 + bob, 2, 2);
+    ctx.fillRect(px + w/2 + 1 + eyeOff, py + 4 + bob, 2, 2);
+    ctx.fillStyle = isRemote ? '#3366cc' : '#cc0000';
+    ctx.beginPath(); ctx.moveTo(px + 3, py + bob); ctx.lineTo(px + 1, py - 4 + bob); ctx.lineTo(px + 6, py + 1 + bob); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(px + w - 3, py + bob); ctx.lineTo(px + w - 1, py - 4 + bob); ctx.lineTo(px + w - 6, py + 1 + bob); ctx.closePath(); ctx.fill();
+    ctx.shadowColor = isRemote ? '#0088ff' : '#ff0000';
+    ctx.shadowBlur = 12;
+    ctx.strokeStyle = isRemote ? 'rgba(100, 160, 255, 0.8)' : 'rgba(255, 60, 60, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(px, py + bob, w, h - 8);
+    ctx.restore();
+
+    // Nom
+    if (isRemote) {
+      ctx.save();
+      ctx.fillStyle = '#88aaff';
+      ctx.font = 'bold 10px Courier New';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 6;
+      ctx.fillText('🌐', px + w/2, py - 8);
+      ctx.restore();
+    }
   }
 
   function drawPlayer() {
     if (!player.alive) return;
-    const camX = game.camera.x;
-    const camY = game.camera.y;
-    const px = player.x - camX;
-    const py = player.y - camY;
+    drawPlayerAt(player.x, player.y, player.w, player.h, player.facing, player.animFrame, false);
+  }
 
-    ctx.save();
-
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.beginPath();
-    ctx.ellipse(px + player.w/2, py + player.h + 4, player.w * 0.7, 3, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    const bob = player.onGround && Math.abs(player.vx) > 0.5
-      ? Math.sin(player.animFrame) * 1.5 : 0;
-
-    ctx.fillStyle = '#8a1a1a';
-    ctx.fillRect(px + 2, py + player.h - 8 + bob, 6, 8 - bob);
-    ctx.fillRect(px + player.w - 8, py + player.h - 8 - bob, 6, 8 + bob);
-
-    const bg = ctx.createLinearGradient(px, py, px, py + player.h);
-    bg.addColorStop(0, '#ff4444');
-    bg.addColorStop(1, '#aa1111');
-    ctx.fillStyle = bg;
-    ctx.fillRect(px, py + bob, player.w, player.h - 8);
-
-    ctx.fillStyle = '#ff6666';
-    ctx.beginPath();
-    ctx.arc(px + player.w/2, py + 6 + bob, 7, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#fff';
-    const eyeOff = player.facing > 0 ? 2 : -3;
-    ctx.fillRect(px + player.w/2 - 2 + eyeOff, py + 4 + bob, 2, 2);
-    ctx.fillRect(px + player.w/2 + 1 + eyeOff, py + 4 + bob, 2, 2);
-
-    ctx.fillStyle = '#cc0000';
-    ctx.beginPath();
-    ctx.moveTo(px + 3, py + bob);
-    ctx.lineTo(px + 1, py - 4 + bob);
-    ctx.lineTo(px + 6, py + 1 + bob);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(px + player.w - 3, py + bob);
-    ctx.lineTo(px + player.w - 1, py - 4 + bob);
-    ctx.lineTo(px + player.w - 6, py + 1 + bob);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.shadowColor = '#ff0000';
-    ctx.shadowBlur = 12;
-    ctx.strokeStyle = 'rgba(255, 60, 60, 0.6)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(px, py + bob, player.w, player.h - 8);
-
-    ctx.restore();
+  function drawRemotePlayers() {
+    Object.values(net.remotePlayers).forEach(p => {
+      if (p.alive !== false) {
+        drawPlayerAt(p.x || 0, p.y || 0, 20, 28, p.facing || 1, p.animFrame || 0, true);
+      }
+    });
   }
 
   function drawParticles() {
-    const camX = game.camera.x;
-    const camY = game.camera.y;
+    const camX = game.camera.x, camY = game.camera.y;
     game.particles.forEach(p => {
       ctx.save();
       ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
-      ctx.fillStyle = p.color;
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur = 8;
+      ctx.fillStyle = p.color; ctx.shadowColor = p.color; ctx.shadowBlur = 8;
       ctx.fillRect(p.x - camX - p.size/2, p.y - camY - p.size/2, p.size, p.size);
       ctx.restore();
     });
@@ -1655,14 +1464,11 @@
 
   function drawVignette() {
     const g = ctx.createRadialGradient(W/2, H/2, H * 0.3, W/2, H/2, H * 0.8);
-    g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(1, 'rgba(0,0,0,0.55)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   }
 
-  let lastTime = 0;
-  let accumulator = 0;
+  let lastTime = 0, accumulator = 0;
   const STEP = 1000 / 60;
 
   function loop(t) {
@@ -1671,49 +1477,31 @@
     lastTime = t;
     if (dt > 100) { accumulator = 0; return; }
     accumulator += dt;
-    while (accumulator >= STEP) {
-      update();
-      accumulator -= STEP;
-    }
+    while (accumulator >= STEP) { update(); accumulator -= STEP; }
     render();
   }
 
   function update() {
     game.time++;
-
     if (game.state === 'playing' || game.state === 'win') {
-      if (game.state === 'playing') {
-        updatePlayer();
-        updateEvents();
-        checkExit();
-      }
+      if (game.state === 'playing') { updatePlayer(); updateEvents(); checkExit(); }
       updateParticles();
       updateCamera();
     }
-
     if (game.shake > 0) game.shake *= 0.85;
     if (game.shake < 0.5) game.shake = 0;
   }
 
   function render() {
     ctx.save();
-
-    if (game.shake > 0) {
-      ctx.translate(
-        (Math.random() - 0.5) * game.shake,
-        (Math.random() - 0.5) * game.shake
-      );
-    }
-
+    if (game.shake > 0) ctx.translate((Math.random() - 0.5) * game.shake, (Math.random() - 0.5) * game.shake);
     drawBackground();
     if (currentLevel && game.state !== 'menu') {
-      drawLevel();
-      drawEvents();
-      drawParticles();
+      drawLevel(); drawEvents(); drawParticles();
+      drawRemotePlayers();
       drawPlayer();
     }
     drawVignette();
-
     ctx.restore();
   }
 
